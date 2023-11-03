@@ -18,26 +18,40 @@
   <meta property="og:title" content="RBF Check">
   <meta property="og:description" content="Relative Bus Factor checking for repos">
   <!-- <meta property="og:image" content=""> -->
-  <meta property="og:url" content="https://plutoniumm.github.io/bus/">
+  <meta property="og:url" content="https://plutoniumm.github.io/rbf/">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="RBF Check">
   <meta name="twitter:description" content="Relative Bus Factor checking for repos">
   <!-- <meta name="twitter:image" content=""> -->
 
-  
-  <script type="module" crossorigin src="./assets/index-b5e9c0ea.js"></script>
-  <link rel="stylesheet" href="./assets/index-13186753.css">
+  <script>
+    const worker = new Worker( './index.js' );
+    // // @facebook/react, @microsoft/typescript
+    // worker.postMessage( {
+    //   repos: [ 'facebook/react', 'microsoft/typescript' ],
+    //   APIkey: ""
+    // } );
+
+    worker.onmessage = ( e ) => {
+      console.log( e.data );
+      const json = JSON.parse( e.data );
+      console.log( json );
+    };
+  </script>
+  <link rel="stylesheet" href="./assets/index-7793d621.css">
 </head>
 
-<body>
-
+<body xmlns="http://www.w3.org/2000/svg">
   <template>
-    <div class="f rx5 p5" style="border: 1px solid #ccc;">
-      <input type="text" id="repo-name" name="repo-name" placeholder="Repo Name" class="w-100 b0" required>
-      <button class="">x</button>
-      <button class="">+</button>
-      <button class="">=</button>
+    <div class="f border" style="margin:5px auto;">
+      <input type="text" id="repo-name" name="repo-name" placeholder="Repo Name" class="w-100 m10 b0" required
+        pattern="[a-zA-z0-9\-\._]*\/[a-zA-z0-9\-\._]*">
+      <button class="remove p10 tc ptr" onclick="removeRepo(event)">
+        <svg viewBox="0 0 32 32" width="20" height="20" fill="none">
+          <path d="M28 6 L6 6 8 30 24 30 26 6 4 6 M16 12 L16 24 M21 12 L20 24 M11 12 L12 24 M12 6 L13 2 19 2 20 6" />
+        </svg>
+      </button>
     </div>
   </template>
 
@@ -46,8 +60,8 @@
   <form action="" class="mx-a tc rpm-20">
     <h2 class="fw4">Relative 🚌 Factor Check</h2>
     <label for="gh-token">
-      <input type="text" id="gh-token" name="gh-token" placeholder="GitHub Token" class="rx5 p10" required
-        style="width: calc(100% - 20px);">
+      <input type="text" id="gh-token" name="gh-token" value="" placeholder="GitHub Token" class="rx5 p10 border"
+        required style="width: calc(100% - 20px);">
     </label>
 
 
@@ -55,9 +69,17 @@
     <!-- repo list container -->
     <h3>Repos</h3>
     <div id="repos"></div>
+    <button type="button" class="rpm-5 mx-a ptr add" onclick="addRepo()">
+      <svg id="i-plus" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="none">
+        <path d="M16 2 L16 30 M2 16 L30 16" stroke-width="4" />
+      </svg>
+    </button>
 
-    <br>
-    <input type="submit" value="Go" class="p5 rx5 mx-a" style="background: #66f;width: 50px;color:#fff;">
+    <p><br></p>
+    <p><br></p>
+    <p><br></p>
+    <input type="submit" value="Go" class="p5 rx5 mx-a"
+      style="background: #44f;width: 150px;color:#fff;font-size: 1.5rem;">
   </form>
 
   <script>
@@ -68,8 +90,13 @@
     const repos = document.querySelector( '#repos' );
     const addRepo = () => {
       const clone = template.content.cloneNode( true );
+      const id = Math.random().toString( 36 ).substr( 2, 6 );
       repos.appendChild( clone );
     }; addRepo();
+    function removeRepo ( e ) {
+      const parent = e.target.parentNode;
+      parent.parentNode.removeChild( parent );
+    }
 
     const key = localStorage.getItem( 'rhb-ght' );
     if ( key ) $( '#gh-token' ).value = key;
@@ -78,8 +105,20 @@
     // submit
     const form = document.querySelector( 'form' );
     form.addEventListener( 'submit', ( event ) => {
-      console.log( event );
+      const data = new FormData( form ).entries();
+      const ghKey = data.next().value[ 1 ];
+      localStorage.setItem( 'rhb-ght', ghKey );
 
+      const repoList = [];
+      for ( const [ key, value ] of data ) {
+        if ( key === 'repo-name' ) repoList.push( value );
+      }
+
+      // post to worker
+      worker.postMessage( {
+        repos: repoList,
+        APIkey: ghKey
+      } );
 
       // prevent default
       event.preventDefault();
