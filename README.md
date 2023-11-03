@@ -1,2 +1,1 @@
-# rbf
-Relative Bus Factor
+# relative 🚌 factor
