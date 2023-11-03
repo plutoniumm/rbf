@@ -1,4 +1,5 @@
-form {
+form,
+#results {
   width: calc(min(100%, 600px) - 42px);
   border: 1px solid #aaa;
 }
@@ -46,4 +47,12 @@ textarea {
 
 svg {
   pointer-events: none;
+}
+
+.bar {
+  background: #888;
+}
+
+.dev {
+  margin-right: 7px;
 }

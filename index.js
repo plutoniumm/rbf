@@ -2,9 +2,7 @@
  * @returns {string}
  */
 function parseRepo ( repo ) {
-    repo = repo.replace( /^@/, "" );
     const [ owner, name ] = repo.split( "/" );
-
     return `owner: "${ owner }", name: "${ name }"`;
 }
 ;
@@ -33,6 +31,9 @@ r${ rand() }: repository(${ parseRepo( repo ) }) {
 
 /** @returns {{ contributors: { name: string; login: string; diff: string; }[]; total_diffs: number; total_devs: number; }} */
 function parseKey ( node ) {
+    if ( !node.defaultBranchRef ) return {
+        contributors: [], total_devs: 0
+    };
     const target = node.defaultBranchRef.target;
     const edges = target.history.edges;
 
@@ -43,9 +44,11 @@ function parseKey ( node ) {
     for ( let i = 0;i < len;i++ ) {
         const node = edges[ i ].node;
         const { author, additions, deletions } = node;
-        if ( !author )
+        if ( !author || !author.user )
             continue;
-        const { login, name } = author.user;
+
+        let login = author.user?.login
+        let name = author.user?.name || login;
 
         const index = contributors.findIndex( ( c ) => c.login === login );
         const diff = additions + deletions;
@@ -74,8 +77,7 @@ function parseKey ( node ) {
         diffs.push( diff );
         sum += diff;
 
-        if ( sum > total_diffs * 0.68 )
-            break;
+        if ( sum > total_diffs * 0.68 ) break;
     }
     ;
 
@@ -84,12 +86,11 @@ function parseKey ( node ) {
         .map( ( _, i ) => ( {
             name: names[ i ],
             login: logins[ i ],
-            diff: Math.round( diffs[ i ] * 100 / total_diffs ) + "%"
+            diff: Math.round( diffs[ i ] * 100 / total_diffs )
         } ) );
 
     return {
         contributors: contributors68,
-        total_diffs,
         total_devs: contributors.length,
     };
 }
@@ -116,29 +117,23 @@ async function getRepos ( repos, APIkey ) {
     const keys = Object.keys( res.data );
     const parsed = keys.map( ( key ) => parseKey( res.data[ key ] ) );
 
-    return JSON.stringify( {
-        repos: keys.map( ( key, i ) => {
-            const { contributors, total_diffs, total_devs } = parsed[ i ];
+    return JSON.stringify(
+        keys.map( ( key, i ) => {
+            const { contributors, total_devs } = parsed[ i ];
             return {
                 repo: repos[ i ],
                 contributors,
-                total_diffs,
                 total_devs,
             };
         } )
-    } );
+    );
 };
-
-const demo = `{"repos":[{"repo":"facebook/react","contributors":[{"name":"Josh Story","login":"gnoff","diff":"52%"},{"name":"Sebastian Markbåge","login":"sebmarkbage","diff":"16%"}],"total_diffs":26497,"total_devs":21},{"repo":"microsoft/typescript","contributors":[{"name":"Sheetal Nandi","login":"sheetalkamat","diff":"92%"}],"total_diffs":313391,"total_devs":19}]}`;
 
 // worker code
 self.onmessage = async ( e ) => {
     const { repos, APIkey } = e.data;
-
-    console.log( repos, APIkey );
-    // const save = await getRepos( repos, APIkey );
-    // self.postMessage( save );
-    self.postMessage( demo );
+    const save = await getRepos( repos, APIkey );
+    self.postMessage( save );
 };
 
 /** @typedef {Object} Contributors
