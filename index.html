@@ -39,12 +39,13 @@
       let results = '';
       for ( let i = 0;i < json.length;i++ ) {
         const repo = json[ i ];
+        const tot = repo.total_devs;
         const bars = bar( repo.contributors );
         const conts = repo.contributors.length;
         const str = `<p>
           <a href="https://github.com/${ repo.repo }"><b>${ repo.repo }</b></a>
           is largely maintained by
-          <b>${ repo.conts }/${ repo.total_devs }</b> i.e <i>${ bus( conts, total_devs ) }%</i>
+          <b>${ conts }/${ tot }</b> i.e <i>${ bus( conts, tot ) }%</i>
           dev${ repo.total_devs > 1 ? 's' : '' }. <br />
           ${ repo.contributors.map( dev ).join( "" ) }
         </p>${ bars } <p><hr/></p>`
@@ -138,12 +139,12 @@
       const APIkey = data.next().value[ 1 ];
       localStorage.setItem( 'rhb-ght', APIkey );
 
-      let respos = [];
+      let repos = [];
       for ( const [ key, value ] of data ) {
-        if ( key === 'repo-name' ) respos.push( value );
+        if ( key === 'repo-name' ) repos.push( value );
       }
-      respos = respos.filter( e => e.includes( '/' ) && !e.includes( ' ' ) );
-      if ( respos.length === 0 ) return;
+      repos = repos.filter( e => e.includes( '/' ) && !e.includes( ' ' ) );
+      if ( repos.length === 0 ) return;
 
       worker.postMessage( { repos, APIkey } );
       event.preventDefault();
