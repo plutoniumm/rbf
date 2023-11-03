@@ -8,18 +8,42 @@ textarea {
   font-size: 1rem;
   width: 80%;
   margin: 5px auto;
-  border: 1px solid #ccc;
   overflow: hidden;
 }
 
-.remove {
-  width: 4ch;
-  background: #f44a;
+.remove,
+.add {
+  font-size: 1rem;
+  width: 5ch;
+  height: 2.6em;
   color: #fff;
-  height: 2em;
   transition: background 0.2s ease-in-out;
+}
+
+.remove {
+  background: #f44a;
 }
 
 .remove:hover {
   background: #f44;
+}
+
+.add {
+  float: right;
+  clear: right;
+  background: #4f4a;
+}
+
+.add:hover {
+  background: #4f4;
+}
+
+
+.border {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+svg {
+  pointer-events: none;
 }
