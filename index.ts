@@ -90,33 +90,39 @@ function parseKey (node) {
   };
 };
 
-
-const repos = ["@facebook/react", "@microsoft/TypeScript"];
-const res = await fetch("https://api.github.com/graphql", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `bearer ${GITHUB_PAT}`,
-  },
-  body: JSON.stringify({
-    query: `{
+async function getRepos (repos: string, APIkey: string) {
+  const res = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `bearer ${APIkey || GITHUB_PAT}`,
+    },
+    body: JSON.stringify({
+      query: `{
       ${repos.map((repo) => query(repo)).join(",\n")}
     }`,
-  })
-}).then((res) => res.json());
+    })
+  }).then((res) => res.json());
 
-const keys = Object.keys(res.data);
-const parsed = keys.map((key) => parseKey(res.data[key]));
+  const keys = Object.keys(res.data);
+  const parsed = keys.map((key) => parseKey(res.data[key]));
 
-let save = JSON.stringify({
-  repos: keys.map((key, i) => {
-    const { contributors, total_diffs, total_devs } = parsed[i];
-    return {
-      repo: repos[i],
-      contributors,
-      total_diffs,
-      total_devs,
-    };
-  })
-}, null, 2);
-Bun.write("test.json", save);
+  return JSON.stringify({
+    repos: keys.map((key, i) => {
+      const { contributors, total_diffs, total_devs } = parsed[i];
+      return {
+        repo: repos[i],
+        contributors,
+        total_diffs,
+        total_devs,
+      };
+    })
+  });
+};
+
+// worker code
+self.onmessage = async (e) => {
+  const { repos, APIkey } = e.data;
+  const save = await getRepos(repos, APIkey);
+  self.postMessage(save);
+};

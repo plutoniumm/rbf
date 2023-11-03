@@ -23,10 +23,27 @@
   <meta name="twitter:title" content="RBF Check">
   <meta name="twitter:description" content="Relative Bus Factor checking for repos">
   <!-- <meta name="twitter:image" content=""> -->
+
+  <script type="module">
+    import Bus from './index.ts?worker';
+    // accepts: const { repos, APIkey } = e.data;
+
+    const worker = new Bus();
+    // @facebook/react, @microsoft/typescript
+    worker.postMessage( {
+      repos: [ '@facebook/react', '@microsoft/typescript' ],
+      APIkey: ""
+    } );
+
+    worker.onmessage = ( e ) => {
+      const json = JSON.parse( e.data );
+      console.log( json );
+    };
+  </script>
 </head>
 
 <body>
-
+  hi
 </body>
 
 </html>
