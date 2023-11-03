@@ -11,35 +11,68 @@
   <!-- meta -->
   <title>RBF Check</title>
   <meta name="description" content="Relative Bus Factor checking for repos">
-  <!-- <link rel="icon" href="" type="image/x-icon"> -->
-  <!-- <link rel="apple-touch-icon" href=""> -->
+  <link rel="icon" href="./assets/icon-983e8968.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icon-983e8968.svg" type="image/svg+xml">
 
-  <!-- Open Graph -->
   <meta property="og:title" content="RBF Check">
   <meta property="og:description" content="Relative Bus Factor checking for repos">
-  <!-- <meta property="og:image" content=""> -->
+  <meta property="og:image" content="./icon.svg">
   <meta property="og:url" content="https://plutoniumm.github.io/rbf/">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="RBF Check">
   <meta name="twitter:description" content="Relative Bus Factor checking for repos">
-  <!-- <meta name="twitter:image" content=""> -->
+  <meta name="twitter:image" content="./icon.svg">
 
   <script>
     const worker = new Worker( './index.js' );
-    // // @facebook/react, @microsoft/typescript
-    // worker.postMessage( {
-    //   repos: [ 'facebook/react', 'microsoft/typescript' ],
-    //   APIkey: ""
-    // } );
 
+    const dev = ( { login: id, name } ) => `<a class="d-ib f fw7 rpm-5" href="https://github.com/${ id }" style="background:#ccc;line-height:24px;">
+      <img src="https://github.com/${ id }.png?size=50" height="24px" width="24px" class="dev rx20" alt="${ id }">
+      ${ name } (@${ id })
+    </a>`;
+
+    const bus = ( conts, tot ) => Math.round( conts / tot * 100 );
     worker.onmessage = ( e ) => {
-      console.log( e.data );
       const json = JSON.parse( e.data );
-      console.log( json );
+
+      let results = '';
+      for ( let i = 0;i < json.length;i++ ) {
+        const repo = json[ i ];
+        const bars = bar( repo.contributors );
+        const conts = repo.contributors.length;
+        const str = `<p>
+          <a href="https://github.com/${ repo.repo }"><b>${ repo.repo }</b></a>
+          is largely maintained by
+          <b>${ repo.conts }/${ repo.total_devs }</b> i.e <i>${ bus( conts, total_devs ) }%</i>
+          dev${ repo.total_devs > 1 ? 's' : '' }. <br />
+          ${ repo.contributors.map( dev ).join( "" ) }
+        </p>${ bars } <p><hr/></p>`
+        results += str;
+      };
+
+      document.querySelector( '#results' ).innerHTML = results;
     };
+
+    function bar ( array ) {
+      const colors = [ "#faa", "#afa", "#aaf", "#ffa", "#aff", "#faf" ];
+      let bars = [];
+      let remainder = 100;
+      let i = 0;
+      for ( const [ _, dev ] of Object.entries( array ) ) {
+        const value = dev.diff;
+        remainder -= value;
+
+        bars.push( `<div class="tc" style="flex:${ value }%; background-color:${ colors[ i ] };color: #fff;">${ dev.login } (${ value }%)</div>` );
+
+        i = ( i + 1 ) % colors.length;
+      };
+      bars.push( `<div class="tc" style="flex:${ remainder };">&nbsp;</div>` );
+
+      return `<div class="f bar w-100 rx10">${ bars.join( "" ) }</div>`
+    }
   </script>
-  <link rel="stylesheet" href="./assets/index-7793d621.css">
+  <link rel="stylesheet" href="./assets/index-e994d694.css">
 </head>
 
 <body xmlns="http://www.w3.org/2000/svg">
@@ -69,61 +102,54 @@
     <!-- repo list container -->
     <h3>Repos</h3>
     <div id="repos"></div>
-    <button type="button" class="rpm-5 mx-a ptr add" onclick="addRepo()">
+    <button type="button" class="rx5 p2 m5 mx-a ptr add" onclick="addRepo()">
       <svg id="i-plus" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="none">
         <path d="M16 2 L16 30 M2 16 L30 16" stroke-width="4" />
       </svg>
     </button>
 
-    <p><br></p>
-    <p><br></p>
-    <p><br></p>
-    <input type="submit" value="Go" class="p5 rx5 mx-a"
-      style="background: #44f;width: 150px;color:#fff;font-size: 1.5rem;">
+    <input type="submit" value="Go" class="p5 rx5"
+      style="background: #44f;width: 150px;color:#fff;font-size: 1.5rem;margin:80px auto 0 auto">
   </form>
+  <br>
+  <div id="results" class="mx-a tl rpm-20"></div>
 
   <script>
     const $ = ( s ) => document.querySelector( s );
+    const template = $( 'template' );
+    const repos = $( '#repos' );
+    const form = $( 'form' );
 
-    // template append
-    const template = document.querySelector( 'template' );
-    const repos = document.querySelector( '#repos' );
+    const key = localStorage.getItem( 'rhb-ght' );
+
     const addRepo = () => {
       const clone = template.content.cloneNode( true );
       const id = Math.random().toString( 36 ).substr( 2, 6 );
       repos.appendChild( clone );
     }; addRepo();
-    function removeRepo ( e ) {
-      const parent = e.target.parentNode;
+    function removeRepo ( { target } ) {
+      const parent = target.parentNode;
       parent.parentNode.removeChild( parent );
     }
 
-    const key = localStorage.getItem( 'rhb-ght' );
+
     if ( key ) $( '#gh-token' ).value = key;
-
-
-    // submit
-    const form = document.querySelector( 'form' );
     form.addEventListener( 'submit', ( event ) => {
       const data = new FormData( form ).entries();
-      const ghKey = data.next().value[ 1 ];
-      localStorage.setItem( 'rhb-ght', ghKey );
+      const APIkey = data.next().value[ 1 ];
+      localStorage.setItem( 'rhb-ght', APIkey );
 
-      const repoList = [];
+      let respos = [];
       for ( const [ key, value ] of data ) {
-        if ( key === 'repo-name' ) repoList.push( value );
+        if ( key === 'repo-name' ) respos.push( value );
       }
+      respos = respos.filter( e => e.includes( '/' ) && !e.includes( ' ' ) );
+      if ( respos.length === 0 ) return;
 
-      // post to worker
-      worker.postMessage( {
-        repos: repoList,
-        APIkey: ghKey
-      } );
-
-      // prevent default
+      worker.postMessage( { repos, APIkey } );
       event.preventDefault();
       return false;
-    } )
+    } );
   </script>
 </body>
 
